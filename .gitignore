@@ -1,0 +1,51 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock.bak
+*.iml
+*.ipr
+*.iws
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/key.properties
+*.jks
+*.keystore
+.gradle/
+captures/
+GeneratedPluginRegistrant.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+secrets/
+secrets.json
+
+# IDEs / OS
+.idea/
+.vscode/
+.antigravity/
+.DS_Store
+Thumbs.db
+*.log

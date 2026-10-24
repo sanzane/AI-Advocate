@@ -1,0 +1,48 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+val newBuildDir: Directory =
+    rootProject.layout.buildDirectory
+        .dir("../../build")
+        .get()
+rootProject.layout.buildDirectory.value(newBuildDir)
+
+subprojects {
+    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+    project.layout.buildDirectory.value(newSubprojectBuildDir)
+}
+fun configureCompileSdk(proj: Project) {
+    val android = proj.extensions.findByName("android") ?: return
+    try {
+        val setCompileSdk = android.javaClass.getMethod("setCompileSdk", java.lang.Integer::class.java)
+        setCompileSdk.invoke(android, 36)
+    } catch (_: Exception) {
+        try {
+            val compileSdkVersion = android.javaClass.getMethod("compileSdkVersion", Int::class.javaPrimitiveType)
+            compileSdkVersion.invoke(android, 36)
+        } catch (_: Exception) {
+        }
+    }
+}
+
+subprojects {
+    if (project.state.executed) {
+        configureCompileSdk(project)
+    } else {
+        project.afterEvaluate {
+            configureCompileSdk(project)
+        }
+    }
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register<Delete>("clean") {
+    delete(rootProject.layout.buildDirectory)
+}
