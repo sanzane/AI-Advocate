@@ -6,9 +6,7 @@ Route handlers only depend on `AIProvider`. Implementations include:
 - `GeminiRAGProvider`: optional hybrid RAG with Google Gemini (loaded lazily).
 """
 
-import asyncio
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import List, Optional
 from uuid import uuid4
 import httpx
@@ -414,34 +412,27 @@ class GeminiRAGProvider(AIProvider):
             + f"USER QUESTION: {request.message}"
         )
 
-        loop = asyncio.get_event_loop()
         try:
-            # Run synchronous Gemini SDK in a thread to avoid blocking the event loop
-            response = await asyncio.wait_for(
-                loop.run_in_executor(
-                    None,
-                    partial(self.client.models.generate_content, model=self.model, contents=full_prompt),
-                ),
-                timeout=75.0,
+            # Use native async API — no thread blocking, no event loop hacks
+            response = await self.client.aio.models.generate_content(
+                model=self.model,
+                contents=full_prompt,
             )
             answer = response.text or "Unable to generate legal information."
-        except asyncio.TimeoutError:
-            raise ProviderNotConfiguredError(
-                "The AI model took too long to respond. Please try again — complex legal queries can take up to 60 seconds."
-            )
         except Exception as e:
-            # Try fallback model
-            try:
-                fallback_response = await asyncio.wait_for(
-                    loop.run_in_executor(
-                        None,
-                        partial(self.client.models.generate_content, model="gemini-3.8-flash", contents=full_prompt),
-                    ),
-                    timeout=75.0,
-                )
-                answer = fallback_response.text or "Unable to generate legal information."
-            except Exception as e2:
-                raise ProviderNotConfiguredError(f"Gemini API Error: {str(e2)}")
+            err = str(e)
+            # Try fallback model on 404/model errors
+            if "404" in err or "NOT_FOUND" in err or "not available" in err.lower():
+                try:
+                    fallback = await self.client.aio.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=full_prompt,
+                    )
+                    answer = fallback.text or "Unable to generate legal information."
+                except Exception as e2:
+                    raise ProviderNotConfiguredError(f"Gemini API Error: {str(e2)}")
+            else:
+                raise ProviderNotConfiguredError(f"Gemini API Error: {err}")
 
         if not sources:
             sources = self._extract_sources(request.message, answer)
