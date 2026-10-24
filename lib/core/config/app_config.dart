@@ -20,7 +20,7 @@ class AppConfig {
   /// works without a backend. When true it calls POST {apiBaseUrl}/api/chat.
   static const bool useBackend = true;
 
-  static const Duration requestTimeout = Duration(seconds: 90);
+  static const Duration requestTimeout = Duration(seconds: 180);
   static const int maxMessageLength = 4000;
 
   static const String disclaimer =
